@@ -1,15 +1,19 @@
-import React,{useState,useEffect,useCallback} from 'react';
+import React from 'react';
 import {createRoot} from 'react-dom/client';
-import type {Session} from '@supabase/supabase-js';
 import App from '../app/page';
 import '../app/globals.css';
-import {database,validRecord} from './backend';
-function PagesApp(){const [uiLang,setUiLang]=useState<'fa'|'en'|'zh'>('fa');const [session,setSession]=useState<Session|null>(null),[ready,setReady]=useState(false),[login,setLogin]=useState(false),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
-useEffect(()=>{database.auth.getSession().then(({data})=>{setSession(data.session);setReady(true)});const {data}=database.auth.onAuthStateChange((_event,s)=>{setSession(s);setReady(true)});return()=>data.subscription.unsubscribe()},[]);
-const transport=useCallback(async(input:any,init:any={})=>{try{const url=String(input);if(!url.startsWith('/api/'))return fetch(input,init);if(!session){if(init.method==='POST'){setLogin(true);return Response.json({error:'Sign in required'},{status:401})}return Response.json({records:[],settings:null,database:'Supabase',authRequired:true})}
-if(url==='/api/records'&&(!init.method||init.method==='GET')){const {data,error}=await database.from('bam_validation_records').select('id,payload').eq('owner_id',session.user.id);if(error)throw error;return Response.json({records:data.filter(r=>r.id!=='programme-settings').map(r=>r.payload),settings:data.find(r=>r.id==='programme-settings')?.payload||null,database:'Supabase'})}
-const p=JSON.parse(init.body||'{}');if(url==='/api/settings'){if(!/^\d{4}-\d{2}-\d{2}$/.test(p.start)||!Number.isFinite(p.target)||p.target<2000||p.target>5000||!['reference','regional'].includes(p.mode))return Response.json({error:'Invalid settings'},{status:400});p.id='programme-settings'}else if(!validRecord(p))return Response.json({error:'Invalid record'},{status:400});const updatedAt=new Date().toISOString();if(p.id!=='programme-settings')p.updatedAt=updatedAt;const {error}=await database.from('bam_validation_records').upsert({owner_id:session.user.id,id:p.id,payload:p,updated_at:updatedAt},{onConflict:'owner_id,id'});if(error)throw error;return Response.json({ok:true,record:p})}catch{return Response.json({error:'Database request failed'},{status:503})}},[session]);
-async function authenticate(signup=false){setBusy(true);setNotice('');try{const {error}=signup?await database.auth.signUp({email,password}):await database.auth.signInWithPassword({email,password});if(error)throw error;if(signup)setNotice(uiLang==='fa'?'پیام تأیید حساب را در رایانامه خود بررسی کنید؛ پس از تأیید، وارد سامانه شوید.':uiLang==='zh'?'请验证邮箱后登录。':'Check your confirmation email, then sign in.');else{setPassword('');setLogin(false)}}catch(e:any){setNotice(uiLang==='fa'?'ورود یا ثبت‌نام انجام نشد. درستی رایانامه و رمز عبور و وضعیت تأیید حساب را بررسی کنید.':uiLang==='zh'?'登录或注册失败，请检查账户信息。':e.message||'Sign in failed')}finally{setBusy(false)}}
-const authControl=<div className="auth-strip"><span>{!ready?'…':session?(uiLang==='fa'?'حساب شما متصل است':uiLang==='zh'?'已登录':'Signed in'):(uiLang==='fa'?'برای ثبت و بازیابی نتایج وارد حساب خود شوید':uiLang==='zh'?'登录保存结果':'Sign in to save and retrieve results')}</span><button className="button" onClick={()=>session?database.auth.signOut():setLogin(true)}>{session?(uiLang==='fa'?'خروج از حساب':uiLang==='zh'?'退出':'Sign out'):(uiLang==='fa'?'ورود به حساب':uiLang==='zh'?'登录':'Sign in')}</button></div>;
-return <><App onLanguageChange={setUiLang} transport={transport} authControl={authControl} authReady={ready} isSignedIn={!!session} assetBase="/BAMCO-VEHICLE-VALIDATION"/>{login&&<div className="auth-overlay"><form className="card auth-modal" onSubmit={e=>{e.preventDefault();authenticate()}}><button type="button" className="auth-close" aria-label="Close" onClick={()=>setLogin(false)}>×</button><div className="eyebrow">{uiLang==='fa'?'سامانه اعتبارسنجی خودرو':'BAM VEHICLE VALIDATION'}</div><h2>{uiLang==='fa'?'ورود به حساب کاربری':uiLang==='zh'?'登录':'Sign in'}</h2><p>{uiLang==='fa'?'با نشانی رایانامه و رمز عبور خود وارد شوید.':uiLang==='zh'?'使用邮箱账户登录':'Use your email account.'}</p><label>{uiLang==='fa'?'رایانامه':uiLang==='zh'?'邮箱':'Email'}<input type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>{uiLang==='fa'?'رمز عبور':uiLang==='zh'?'密码':'Password'}<input type="password" autoComplete="current-password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)}/></label>{notice&&<p role="status" className="notice">{notice}</p>}<div className="actions"><button className="button primary" disabled={busy} type="submit">{busy?'…':uiLang==='fa'?'ورود به سامانه':uiLang==='zh'?'登录':'Sign in'}</button><button className="button" type="button" disabled={busy||!email||password.length<8} onClick={()=>authenticate(true)}>{uiLang==='fa'?'ایجاد حساب کاربری':uiLang==='zh'?'注册':'Register'}</button></div><small>{uiLang==='fa'?'نتایج ثبت‌شده فقط برای صاحب حساب قابل مشاهده است.':uiLang==='zh'?'各账户仅可查看自己的记录。':'Each account can access its own records.'}</small></form></div>}</>}
-createRoot(document.getElementById('root')!).render(<PagesApp/>);
+// Anonymous operation stays on this device; existing cloud records remain untouched.
+const key='bam-validation-device-v1';
+async function transport(input:any,init:any={}){
+ if(!String(input).startsWith('/api/'))return fetch(input,init);
+ try{
+ const state=JSON.parse(localStorage.getItem(key)||'{"records":[],"settings":null}');
+ if(!init.method||init.method==='GET')return Response.json(state);
+ const payload=JSON.parse(init.body||'{}');
+ if(String(input)==='/api/settings')state.settings=payload;
+ else {payload.updatedAt=new Date().toISOString();state.records=[payload,...state.records.filter((r:any)=>r.id!==payload.id)];}
+ localStorage.setItem(key,JSON.stringify(state));
+ return Response.json({ok:true,record:payload});
+ }catch{return Response.json({error:'Device storage unavailable'},{status:503});}
+}
+createRoot(document.getElementById('root')!).render(<App transport={transport} assetBase="/BAMCO-VEHICLE-VALIDATION"/>);
