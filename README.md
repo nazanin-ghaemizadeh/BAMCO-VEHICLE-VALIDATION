@@ -21,3 +21,9 @@ Install with the Sites dependency helper. `pnpm dev`, `pnpm build`; `pnpm exec t
 `GET /api/records`, `POST /api/records`, `POST /api/settings`. Save rejects invalid odometers and scores outside 1–10. API uses same-origin write checks; hosted private access protects the site. Records remain on the server, not in browser localStorage.
 
 Source is maintained in the Sites deployment repository and mirrored to https://github.com/nazanin-ghaemizadeh/BAMCO-VEHICLE-VALIDATION (private). Live application: https://bam-vehicle-validation.nazaninghaemi.chatgpt.site . The GitHub repository is a source mirror; Sites owns deployment and its D1 binding.
+
+## GitHub Pages
+
+The public GitHub Pages build uses `pages/main.tsx`, `vite.pages.config.ts`, and `pnpm run build:pages`. GitHub Actions publishes `dist-pages` with the repository base path. The shared React UI is rendered directly on Pages; it is not an iframe or redirect.
+
+GitHub Pages has no server runtime. Its records are stored in the existing BAMCO VEHICLE ASSESSMENT Supabase project, in `public.bam_validation_records`. The schema and owner-specific SELECT/INSERT/UPDATE policies are in `supabase/schema.sql`. Only a publishable client key is embedded. Anonymous users can browse the programmes but cannot read or write results; email/password authentication is required for results. Registration uses normal email confirmation. D1 remains the private Sites deployment's separate backend; prior D1 data is not copied or made public.
